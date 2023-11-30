@@ -3,6 +3,7 @@ from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
+
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 
@@ -126,3 +127,5 @@ if __name__ == "__main__":
         print(f"Varience nmi_score sur {n_expr} experience est:  {resultats[1]}")
         print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[2]}")
         print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[3]}")
+
+    
