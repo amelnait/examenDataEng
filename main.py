@@ -1,11 +1,14 @@
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score
 from sentence_transformers import SentenceTransformer
+from umap import UMAP
 from sklearn.cluster import KMeans
 import numpy as np
+import prince
+import pandas as pd
 
 def UMAP(mat, p):
-  '''
+    '''
     Perform dimensionality reduction
 
     Input:
@@ -21,7 +24,25 @@ def UMAP(mat, p):
 
   red_mat = red_emb[:, :p]
   return red_mat
-def dim_red(mat, p, method):
+
+def PCA(mat,p):
+  '''
+        mat : NxM list 
+        p : number of dimensions to keep 
+    Output:
+    ------
+        red_mat : NxP list such that p<<m
+    '''
+    pca = prince.PCA(n_components=p)
+    pca= pca.fit(pd.DataFrame(mat))
+    reduction_dim = pca.transform(pd.DataFrame(mat))
+    reduction_dim = reduction_dim.to_numpy()
+    
+    return reduction_dim
+
+
+from sklearn.manifold import TSNE
+def TSNE(mat, p):
     '''
     Perform dimensionality reduction
 
@@ -33,69 +54,13 @@ def dim_red(mat, p, method):
     ------
         red_mat : NxP list such that p<<m
     '''
-    if method=='ACP':
-        red_mat = mat[:,:p]
-        
-    elif method=='AFC':
-        red_mat = mat[:,:p]
-        
-    elif method=='UMAP':
-        red_mat = UMAP(mat, p) 
-    else:
-        raise Exception("Please select one of the three methods : APC, AFC, UMAP")
+    mat = TSNE(n_components=p, learning_rate='auto',
+                init='random', perplexity=3).fit_transform(mat)
+    red_mat = mat[:,:p]
     
     return red_mat
 
-
-
-def clust(mat, k):
-    '''
-    Perform clustering
-
-    Input:
-    -----
-        mat : input list
-        k : number of cluster
-    Output:
-    ------
-        pred : list of predicted labels
-    '''
-    # Create a KMeans instance with k clusters: model
-    model = KMeans(n_clusters=k)
-
-    # Fit model to samples
-    result = model.fit(mat)
-    pred = result.labels_
-
-    return pred
-
-# import data
-ng20 = fetch_20newsgroups(subset='test')
-corpus = ng20.data[:2000]
-labels = ng20.target[:2000]
-k = len(set(labels))
-
-# embedding
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-embeddings = model.encode(corpus)
-
-# Perform dimensionality reduction and clustering for each method
-methods = ['ACP', 'AFC', 'UMAP']
-for method in methods:
-    # Perform dimensionality reduction
-    red_emb = dim_red(embeddings, 20, method)
-
-    # Perform clustering
-    pred = clust(red_emb, k)
-
-    # Evaluate clustering results
-    nmi_score = normalized_mutual_info_score(pred, labels)
-    ari_score = adjusted_rand_score(pred, labels)
-
-# Print results
-print(f'Method: {method}\nNMI: {nmi_score:.2f} \nARI: {ari_score:.2f}\n')
-
-
+  
 def stat_model(n_expr, mat, k, labels):
   means_nmi_score=0.
   varience_nmi_score=0.
@@ -114,3 +79,88 @@ def stat_model(n_expr, mat, k, labels):
   varience_ari_score = np.std(results_ari_score)
 
   return means_nmi_score, varience_nmi_score, means_ari_score, varience_ari_score
+
+def dim_red(mat, p, method):
+    '''
+    Perform dimensionality reduction
+
+    Input:
+    -----
+        mat : NxM list 
+        p : number of dimensions to keep 
+        method : methode used (PCA, TSNE, UMAP)
+    Output:
+    ------
+        red_mat : NxP list such that p<<m
+    '''
+    if method=='ACP':
+        red_mat = PCA(mat, p)
+        
+    elif method=='TSNE':
+        red_mat = TSNE(mat, p)
+        
+    elif method=='UMAP':
+        red_mat = UMAP(mat, p)
+        
+    else:
+        raise Exception("Please select one of the three methods : APC, AFC, UMAP")
+    
+    return red_mat
+
+def clust(mat, k):
+    '''
+    Perform clustering
+
+    Input:
+    -----
+        mat : input list 
+        k : number of cluster
+    Output:
+    ------
+        pred : list of predicted labels
+    '''
+    # Create a KMeans instance with k clusters: model
+    model = KMeans(n_clusters=k)
+
+    # Fit model to samples
+    result = model.fit(mat)
+    pred = result.labels_
+
+    return pred
+
+if __name__ == "__main__":
+    # import data
+    ng20 = fetch_20newsgroups(subset='test')
+    corpus = ng20.data[:2000]
+    labels = ng20.target[:2000]
+    k = len(set(labels))
+
+    # embedding
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    embeddings = model.encode(corpus)
+
+    # Perform dimensionality reduction and clustering for each method
+
+     methods = ['ACP', 'TSNE', 'UMAP']
+    for method in methods:
+        # Perform dimensionality reduction
+        red_emb = dim_red(embeddings, 20, method)
+
+        # Perform clustering
+        pred = clust(red_emb, k)
+
+
+        # Evaluate clustering results
+        nmi_score = normalized_mutual_info_score(pred, labels)
+        ari_score = adjusted_rand_score(pred, labels)
+
+        # Print results
+        print(f'Method: {method}\nNMI: {nmi_score:.2f} \nARI: {ari_score:.2f}\n')
+        
+        n_expr=100
+        resultats = stat_model(n_expr, mat = red_emb, k = 20, labels = labels)
+
+        print(f"Moyenne nmi_score sur {n_expr} experience est:  {resultats[0]}")
+        print(f"Ecart_type nmi_score sur {n_expr} experience est:  {resultats[1]}")
+        print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[2]}")
+        print(f"Ecart_type ari_score sur {n_expr} experience est:  {resultats[3]}")
