@@ -3,6 +3,48 @@ from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
+import prince
+import pandas as pd
+from sklearn.cluster import KMeans
+
+def PCA(mat, p):
+    '''
+    Perform dimensionality reduction
+
+    Input:
+    -----
+        mat : NxM list 
+        p : number of dimensions to keep 
+    Output:
+    ------
+        red_mat : NxP list such that p<<m
+    '''
+    pca = prince.PCA(n_components=p)
+    pca= pca.fit(pd.DataFrame(mat))
+    reduction_dim = pca.transform(pd.DataFrame(mat))
+    reduction_dim = reduction_dim.to_numpy()
+    
+    return reduction_dim
+
+def stat_model(n_expr, mat, k, labels):
+  means_nmi_score=0.
+  varience_nmi_score=0.
+  means_ari_score=0.
+  varience_ari_score=0.
+
+  results_nmi_score=[]
+  results_ari_score=[]
+  for i in range(n_expr):
+    pred = clust(mat, k)
+    results_nmi_score = normalized_mutual_info_score(pred,labels)
+    results_ari_score = adjusted_rand_score(pred,labels)
+  means_nmi_score = np.mean(results_nmi_score)
+  means_ari_score = np.mean(results_ari_score)
+  varience_nmi_score = np.std(results_nmi_score)
+  varience_ari_score = np.std(results_ari_score)
+
+  return means_nmi_score, varience_nmi_score, means_ari_score, varience_ari_score
+
 
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
@@ -58,7 +100,7 @@ def dim_red(mat, p, method):
         red_mat : NxP list such that p<<m
     '''
     if method=='ACP':
-        red_mat = mat[:,:p]
+        red_mat = PCA(mat, p)
         
     elif method=='TSNE':
         red_mat = TSNE(mat, p)
@@ -105,13 +147,14 @@ if __name__ == "__main__":
 
     # Perform dimensionality reduction and clustering for each method
 
-    methods = ['ACP', 'TSNE', 'UMAP']
+     methods = ['ACP', 'TSNE', 'UMAP']
     for method in methods:
         # Perform dimensionality reduction
         red_emb = dim_red(embeddings, 20, method)
 
         # Perform clustering
         pred = clust(red_emb, k)
+
 
         # Evaluate clustering results
         nmi_score = normalized_mutual_info_score(pred, labels)
@@ -128,4 +171,3 @@ if __name__ == "__main__":
         print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[2]}")
         print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[3]}")
 
-    
