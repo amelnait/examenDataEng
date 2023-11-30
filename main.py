@@ -1,18 +1,32 @@
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score
 from sentence_transformers import SentenceTransformer
+from umap import UMAP
+from sklearn.cluster import KMeans
 import numpy as np
-
 import prince
 import pandas as pd
-from sklearn.cluster import KMeans
 
-def PCA(mat, p):
+def UMAP(mat, p):
     '''
     Perform dimensionality reduction
 
     Input:
     -----
+        mat : NxM list
+        p : number of dimensions to keep
+    Output:
+    ------
+        red_mat : NxP list such that p<<m
+  '''
+  reducer = UMAP(n_components=p, random_state=42)
+  red_emb = reducer.fit_transform(mat)
+
+  red_mat = red_emb[:, :p]
+  return red_mat
+
+def PCA(mat,p):
+  '''
         mat : NxM list 
         p : number of dimensions to keep 
     Output:
@@ -26,30 +40,8 @@ def PCA(mat, p):
     
     return reduction_dim
 
-def stat_model(n_expr, mat, k, labels):
-  means_nmi_score=0.
-  varience_nmi_score=0.
-  means_ari_score=0.
-  varience_ari_score=0.
-
-  results_nmi_score=[]
-  results_ari_score=[]
-  for i in range(n_expr):
-    pred = clust(mat, k)
-    results_nmi_score = normalized_mutual_info_score(pred,labels)
-    results_ari_score = adjusted_rand_score(pred,labels)
-  means_nmi_score = np.mean(results_nmi_score)
-  means_ari_score = np.mean(results_ari_score)
-  varience_nmi_score = np.std(results_nmi_score)
-  varience_ari_score = np.std(results_ari_score)
-
-  return means_nmi_score, varience_nmi_score, means_ari_score, varience_ari_score
-
 
 from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
-
-
 def TSNE(mat, p):
     '''
     Perform dimensionality reduction
@@ -68,6 +60,7 @@ def TSNE(mat, p):
     
     return red_mat
 
+  
 def stat_model(n_expr, mat, k, labels):
   means_nmi_score=0.
   varience_nmi_score=0.
@@ -95,6 +88,7 @@ def dim_red(mat, p, method):
     -----
         mat : NxM list 
         p : number of dimensions to keep 
+        method : methode used (PCA, TSNE, UMAP)
     Output:
     ------
         red_mat : NxP list such that p<<m
@@ -106,13 +100,12 @@ def dim_red(mat, p, method):
         red_mat = TSNE(mat, p)
         
     elif method=='UMAP':
-        red_mat = mat[:,:p]
+        red_mat = UMAP(mat, p)
         
     else:
         raise Exception("Please select one of the three methods : APC, AFC, UMAP")
     
     return red_mat
-
 
 def clust(mat, k):
     '''
@@ -128,11 +121,12 @@ def clust(mat, k):
     '''
     # Create a KMeans instance with k clusters: model
     model = KMeans(n_clusters=k)
-    
+
     # Fit model to samples
     result = model.fit(mat)
+    pred = result.labels_
 
-    return result.labels_
+    return pred
 
 if __name__ == "__main__":
     # import data
@@ -167,7 +161,6 @@ if __name__ == "__main__":
         resultats = stat_model(n_expr, mat = red_emb, k = 20, labels = labels)
 
         print(f"Moyenne nmi_score sur {n_expr} experience est:  {resultats[0]}")
-        print(f"Varience nmi_score sur {n_expr} experience est:  {resultats[1]}")
+        print(f"Ecart_type nmi_score sur {n_expr} experience est:  {resultats[1]}")
         print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[2]}")
-        print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[3]}")
-
+        print(f"Ecart_type ari_score sur {n_expr} experience est:  {resultats[3]}")
