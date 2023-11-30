@@ -2,6 +2,7 @@ from sklearn.datasets import fetch_20newsgroups
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score
 from sentence_transformers import SentenceTransformer
 import numpy as np
+
 import prince
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -43,6 +44,7 @@ def stat_model(n_expr, mat, k, labels):
   varience_ari_score = np.std(results_ari_score)
 
   return means_nmi_score, varience_nmi_score, means_ari_score, varience_ari_score
+
 
 def dim_red(mat, p, method):
     '''
