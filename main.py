@@ -1,9 +1,26 @@
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score
 from sentence_transformers import SentenceTransformer
+from sklearn.cluster import KMeans
 import numpy as np
 
+def UMAP(mat, p):
+  '''
+    Perform dimensionality reduction
 
+    Input:
+    -----
+        mat : NxM list
+        p : number of dimensions to keep
+    Output:
+    ------
+        red_mat : NxP list such that p<<m
+  '''
+  reducer = UMAP(n_components=p, random_state=42)
+  red_emb = reducer.fit_transform(mat)
+
+  red_mat = red_emb[:, :p]
+  return red_mat
 def dim_red(mat, p, method):
     '''
     Perform dimensionality reduction
@@ -23,12 +40,12 @@ def dim_red(mat, p, method):
         red_mat = mat[:,:p]
         
     elif method=='UMAP':
-        red_mat = mat[:,:p]
-        
+        red_mat = UMAP(mat, p) 
     else:
         raise Exception("Please select one of the three methods : APC, AFC, UMAP")
     
     return red_mat
+
 
 
 def clust(mat, k):
@@ -37,15 +54,19 @@ def clust(mat, k):
 
     Input:
     -----
-        mat : input list 
+        mat : input list
         k : number of cluster
     Output:
     ------
         pred : list of predicted labels
     '''
-    
-    pred = np.random.randint(k, size=len(corpus))
-    
+    # Create a KMeans instance with k clusters: model
+    model = KMeans(n_clusters=k)
+
+    # Fit model to samples
+    result = model.fit(mat)
+    pred = result.labels_
+
     return pred
 
 # import data
@@ -71,6 +92,25 @@ for method in methods:
     nmi_score = normalized_mutual_info_score(pred, labels)
     ari_score = adjusted_rand_score(pred, labels)
 
-    # Print results
-    print(f'Method: {method}\nNMI: {nmi_score:.2f} \nARI: {ari_score:.2f}\n')
+# Print results
+print(f'Method: {method}\nNMI: {nmi_score:.2f} \nARI: {ari_score:.2f}\n')
 
+
+def stat_model(n_expr, mat, k, labels):
+  means_nmi_score=0.
+  varience_nmi_score=0.
+  means_ari_score=0.
+  varience_ari_score=0.
+
+  results_nmi_score=[]
+  results_ari_score=[]
+  for i in range(n_expr):
+    pred = clust(mat, k)
+    results_nmi_score = normalized_mutual_info_score(pred,labels)
+    results_ari_score = adjusted_rand_score(pred,labels)
+  means_nmi_score = np.mean(results_nmi_score)
+  means_ari_score = np.mean(results_ari_score)
+  varience_nmi_score = np.std(results_nmi_score)
+  varience_ari_score = np.std(results_ari_score)
+
+  return means_nmi_score, varience_nmi_score, means_ari_score, varience_ari_score
