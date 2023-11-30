@@ -18,15 +18,15 @@ def UMAP(mat, p):
     Output:
     ------
         red_mat : NxP list such that p<<m
-  '''
-  reducer = UMAP(n_components=p, random_state=42)
-  red_emb = reducer.fit_transform(mat)
+    '''
+    reducer = UMAP(n_components=p, random_state=42)
+    red_emb = reducer.fit_transform(mat)
 
-  red_mat = red_emb[:, :p]
-  return red_mat
+    red_mat = red_emb[:, :p]
+    return red_mat
 
 def PCA(mat,p):
-  '''
+    '''
         mat : NxM list 
         p : number of dimensions to keep 
     Output:
@@ -133,15 +133,17 @@ if __name__ == "__main__":
     ng20 = fetch_20newsgroups(subset='test')
     corpus = ng20.data[:2000]
     labels = ng20.target[:2000]
-    k = len(set(labels))
+    k = 20
 
     # embedding
-    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-    embeddings = model.encode(corpus)
+    # embedding
+    data_input = pd.read_csv("data_embeddings.csv")
+
+    embeddings = data_input.values
 
     # Perform dimensionality reduction and clustering for each method
 
-     methods = ['ACP', 'TSNE', 'UMAP']
+    methods = ['ACP', 'TSNE', 'UMAP']
     for method in methods:
         # Perform dimensionality reduction
         red_emb = dim_red(embeddings, 20, method)
