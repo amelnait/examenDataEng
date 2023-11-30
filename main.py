@@ -18,7 +18,7 @@ def PCA(mat, p):
     ------
         red_mat : NxP list such that p<<m
     '''
-    pca = prince.PCA(n_components=20)
+    pca = prince.PCA(n_components=p)
     pca= pca.fit(pd.DataFrame(mat))
     reduction_dim = pca.transform(pd.DataFrame(mat))
     reduction_dim = reduction_dim.to_numpy()
@@ -91,29 +91,38 @@ def clust(mat, k):
 
     return result.labels_
 
-# import data
-ng20 = fetch_20newsgroups(subset='test')
-corpus = ng20.data[:2000]
-labels = ng20.target[:2000]
-k = len(set(labels))
+if __name__ == "__main__":
+    # import data
+    ng20 = fetch_20newsgroups(subset='test')
+    corpus = ng20.data[:2000]
+    labels = ng20.target[:2000]
+    k = len(set(labels))
 
-# embedding
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-embeddings = model.encode(corpus)
+    # embedding
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    embeddings = model.encode(corpus)
 
-# Perform dimensionality reduction and clustering for each method
-methods = ['ACP', 'AFC', 'UMAP']
-for method in methods:
-    # Perform dimensionality reduction
-    red_emb = dim_red(embeddings, 20, method)
+    # Perform dimensionality reduction and clustering for each method
 
-    # Perform clustering
-    pred = clust(red_emb, k)
+    methods = ['ACP', 'AFC', 'UMAP']
+    for method in methods:
+        # Perform dimensionality reduction
+        red_emb = dim_red(embeddings, 20, method)
 
-    # Evaluate clustering results
-    nmi_score = normalized_mutual_info_score(pred, labels)
-    ari_score = adjusted_rand_score(pred, labels)
+        # Perform clustering
+        pred = clust(red_emb, k)
 
-    # Print results
-    print(f'Method: {method}\nNMI: {nmi_score:.2f} \nARI: {ari_score:.2f}\n')
+        # Evaluate clustering results
+        nmi_score = normalized_mutual_info_score(pred, labels)
+        ari_score = adjusted_rand_score(pred, labels)
 
+        # Print results
+        print(f'Method: {method}\nNMI: {nmi_score:.2f} \nARI: {ari_score:.2f}\n')
+        
+        n_expr=100
+        resultats = stat_model(n_expr, mat = red_emb, k = 20, labels = labels)
+
+        print(f"Moyenne nmi_score sur {n_expr} experience est:  {resultats[0]}")
+        print(f"Varience nmi_score sur {n_expr} experience est:  {resultats[1]}")
+        print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[2]}")
+        print(f"Moyenne ari_score sur {n_expr} experience est:  {resultats[3]}")
